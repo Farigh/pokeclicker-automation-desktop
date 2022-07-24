@@ -9,6 +9,7 @@ const url = require('url');
 const DiscordRPC = require('discord-rpc');
 const https = require('https');
 const fs = require('fs');
+const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
 const Zip = require('adm-zip');
 const electron = require('electron');
 
@@ -37,6 +38,13 @@ function createWindow() {
   mainWindow.webContents.on('did-finish-load', () => {
     mainWindow.webContents.executeJavaScript(
       fs.readFileSync(`${__dirname}/discord.js`).toString()
+    ).catch(e=>{});
+  });
+
+  // Execute pokeclicker-automation
+  mainWindow.webContents.on('did-finish-load', () => {
+    mainWindow.webContents.executeJavaScript(
+      fs.readFileSync(`${__dirname}/pokeclicker-automation.js`).toString()
     ).catch(e=>{});
   });
 
@@ -109,9 +117,9 @@ app.on('activate', () => {
 /*
 DISCORD STUFF
 */
-    
+
 const isMainInstance = app.requestSingleInstanceLock()
-    
+
 if (!isMainInstance) {
   app.quit()
 } else {
@@ -273,7 +281,7 @@ if (!isMainInstance) {
           }
         }catch(e) {}
       });
-    
+
     }).on('error', (e) => {
       // TODO: Update download failed
       console.warn('Couldn\'t check for updated version, might be offline..');
@@ -288,7 +296,7 @@ if (!isMainInstance) {
       buttons: ['Update Now', 'Remind Me', 'No (disable check)'],
       noLink: true,
     });
-    
+
     switch (userResponse) {
       case 0:
         downloadUpdate();
@@ -332,7 +340,7 @@ if (!isMainInstance) {
         buttons: ['Restart App Now', 'Later'],
         noLink: true,
       });
-      
+
       switch (userResponse) {
         case 0:
           windowClosed = true;
