@@ -10,8 +10,8 @@ on:
         branches: [ "master" ]
 
 jobs:
-    build-win64:
-        runs-on: ubuntu-latest
+    windows-build:
+        runs-on: windows-latest
 
         steps:
             - uses: actions/checkout@v3
@@ -20,17 +20,19 @@ jobs:
               with:
                 node-version: "18.x"
 
-            - name: Install Linux dependencies
-              run: sudo apt install wine -y
-
             - name: Install Node.js dependencies
               run: npm ci
 
-            - name: Build
+            - name: Build win-x64
               run: npm run-script dist:64
+
+            - name: Build win-portable
+              run: npm run-script win
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v3.1.0
               with:
-                name: app.asar
-                path: dist/linux-unpacked/resources/app.asar
+                name: pokeclicker-artifacts
+                path: |
+                  dist/*/resources/app.asar
+                  dist/pokeclicker-desktop-with-scripts-*.exe

@@ -1,7 +1,7 @@
 {
-  "name": "pokeclicker-desktop",
+  "name": "pokeclicker-desktop-with-scripts",
   "version": "1.1.0",
-  "description": "PokeClicker Desktop",
+  "description": "PokeClicker with Scripts Desktop",
   "repository": {
     "type": "git",
     "url": "https://github.com/RedSparr0w/Pokeclicker-desktop.git"
@@ -10,12 +10,12 @@
   "scripts": {
     "start": "electron ./",
     "dist:32": "electron-builder --ia32",
-    "dist:64": "electron-builder --x64 -c.artifactName=pokeclicker-desktop-64bit-setup-1.1.0.exe --publish=never",
-    "win": "electron-builder --windows portable",
+    "dist:64": "electron-builder --x64 -c.artifactName=pokeclicker-desktop-with-scripts-64bit-setup-${version}.${ext} --publish=never",
+    "win": "electron-builder --windows portable -c.artifactName=pokeclicker-desktop-with-scripts-portable-${version}.${ext} --publish=never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
-    "name": "RedSparr0w",
+    "name": "RedSparr0w (repacked by Farigh)",
     "email": "dont@contact.com"
   },
   "license": "ISC",
@@ -23,20 +23,20 @@
     "adm-zip": "^0.5.9",
     "discord-rpc": "^4.0.1",
     "xmlhttprequest": "^1.8.0",
-    "electron-updater": "^5.0.1"
+    "electron-updater": "^5.0.5"
   },
   "devDependencies": {
-    "electron": "^19.0.3",
-    "electron-builder": "^23.0.3"
+    "electron": "^19.0.10",
+    "electron-builder": "^23.1.0"
   },
   "build": {
-    "productName": "PokéClicker",
+    "productName": "PokéClicker with Scripts",
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true
     },
     "win": {
-      "requestedExecutionLevel": "highestAvailable"
+      "requestedExecutionLevel": "asInvoker"
     },
     "linux": {
       "category": "Game",
