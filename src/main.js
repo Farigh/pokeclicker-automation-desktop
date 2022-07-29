@@ -49,7 +49,7 @@ function createWindow() {
   });
 
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.setTitle('PokéClicker');
+  mainWindow.setTitle('PokéClicker with Scripts');
 
   // Check if we've already downloaded the data, otherwise load our loading screen
   if (fs.existsSync(`${dataDir}/pokeclicker-master/docs/index.html`)) {
@@ -81,7 +81,7 @@ function createSecondaryWindow() {
   });
 
   newWindow.setMenuBarVisibility(false);
-  newWindow.setTitle('PokéClicker (alternate)');
+  newWindow.setTitle('PokéClicker with Scripts (alternate)');
 
   // Check if we've already downloaded the data, otherwise load our loading screen
   if (fs.existsSync(`${dataDir}/pokeclicker-master/docs/index.html`)) {
