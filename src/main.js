@@ -9,7 +9,7 @@ const url = require('url');
 const DiscordRPC = require('discord-rpc');
 const https = require('https');
 const fs = require('fs');
-const XMLHttpRequest = require("xmlhttprequest").XMLHttpRequest;
+const XMLHttpRequest = require("w3c-xmlhttprequest").XMLHttpRequest;
 const Zip = require('adm-zip');
 const electron = require('electron');
 
