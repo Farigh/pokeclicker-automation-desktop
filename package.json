@@ -4,14 +4,16 @@
   "description": "PokeClicker with Scripts Desktop",
   "repository": {
     "type": "git",
-    "url": "https://github.com/RedSparr0w/Pokeclicker-desktop.git"
+    "url": "https://github.com/Farigh/pokeclicker-automation-desktop.git"
   },
   "main": "src/main.js",
   "scripts": {
     "start": "electron ./",
     "dist:32": "electron-builder --ia32",
-    "dist:64": "electron-builder --x64 -c.artifactName=pokeclicker-desktop-with-scripts-64bit-setup-${version}.${ext} --publish=never",
-    "win": "electron-builder --windows portable -c.artifactName=pokeclicker-desktop-with-scripts-portable-${version}.${ext} --publish=never",
+    "dist:64": "electron-builder --x64 -c.artifactName=${name}-64bit-setup-${version}.${ext} --publish=never",
+    "win": "electron-builder --windows portable -c.artifactName=${name}-portable-${version}.${ext} --publish=never",
+    "linux:arm64": "electron-builder --linux deb rpm --arm64 --publish=never",
+    "linux:x64": "electron-builder --linux deb rpm --x64 --publish=never",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {
