@@ -15,6 +15,125 @@ const electron = require('electron');
 
 const dataDir =  (electron.app || electron.remote.app).getPath('userData');
 
+class PokeclickerAutomationUpdater
+{
+    static automationDir = `pokeclicker-automation-master`;
+    static automationFullPath = `${dataDir}/${this.automationDir}/`;
+    static versionPath = `${this.automationFullPath}version.sha1`;
+    static latestCommitSha1Url = 'https://api.github.com/repos/farigh/pokeclicker-automation/commits?sha=master&per_page=1';
+
+    static getCurrentVersion()
+    {
+        let currentVersionSha1 = "";
+
+        try
+        {
+            currentVersionSha1 = fs.readFileSync(this.versionPath);
+        }
+        catch(e)
+        {}
+
+        return currentVersionSha1;
+    }
+
+    static checkForUpdatesAndRun(userAgent)
+    {
+        // Create the output dir if it does not exist
+        if (!fs.existsSync(this.automationFullPath))
+        {
+            fs.mkdirSync(this.automationFullPath);
+        }
+
+        let newVersionSha1 = "";
+
+        https.get(this.latestCommitSha1Url, { headers: { 'User-Agent' : userAgent } },
+            (res) =>
+            {
+                let jsonData = '';
+
+                res.on('data', d =>
+                    {
+                        jsonData += d;
+                    });
+
+                res.on('end', () =>
+                    {
+                        try
+                        {
+                            const data = JSON.parse(jsonData);
+                            newVersionSha1 = data[0].sha;
+
+                            if (this.isNewerVersionAvailable(newVersionSha1))
+                            {
+                                // Download the latest version
+                                this.downloadNewUpdate(newVersionSha1);
+                            }
+                            else
+                            {
+                                // No update needed, run the automation right away
+                                this.runAutomation();
+                            }
+                        }
+                        catch(e)
+                        {}
+                    });
+
+            }).on('error', (e) =>
+            {
+                console.warn("Check for pokeclicker automation update failed.");
+            });
+    }
+
+    static runAutomation()
+    {
+        // Load automation ComponentLoader
+        mainWindow.webContents.executeJavaScript(
+            fs.readFileSync(`${PokeclickerAutomationUpdater.automationFullPath}src/ComponentLoader.js`).toString()
+        ).catch(e=>{});
+
+        // Run automation
+        let automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
+        mainWindow.webContents.executeJavaScript(
+            `AutomationComponentLoader.loadFromUrl('${automationBaseUrl}');`);
+    }
+
+    static downloadNewUpdate(newVersionSha1)
+    {
+        console.info(`\n\n=== Downloading latest pokeclicker update...\n\n`);
+
+        const zipFilePath = `${dataDir}/automation-update.zip`;
+        const file = fs.createWriteStream(zipFilePath);
+        https.get('https://codeload.github.com/Farigh/pokeclicker-automation/zip/master',
+            async (res) =>
+            {
+                res.pipe(file).on('finish',
+                    async () =>
+                    {
+                        const zip = new Zip(zipFilePath);
+
+                        const extracted = zip.extractEntryTo(`${this.automationDir}/`, `${dataDir}`, true, true);
+
+                        fs.unlinkSync(zipFilePath);
+
+                        if (extracted)
+                        {
+                            // Save current version sha1
+                            fs.writeFileSync(this.versionPath, newVersionSha1);
+                        }
+
+                        // Run the automation as soon at it's been updated
+                        this.runAutomation();
+                    });
+            });
+    }
+
+    static isNewerVersionAvailable(latestSha1)
+    {
+        console.info(`\n\nCurrent sha1: ${this.getCurrentVersion()}\nLatest sha1: ${latestSha1}\n\n`);
+        return this.getCurrentVersion() != latestSha1;
+    }
+}
+
 console.info('Data directory:', dataDir);
 
 let checkForUpdatesInterval;
@@ -39,13 +158,9 @@ function createWindow() {
     mainWindow.webContents.executeJavaScript(
       fs.readFileSync(`${__dirname}/discord.js`).toString()
     ).catch(e=>{});
-  });
 
-  // Execute pokeclicker-automation
-  mainWindow.webContents.on('did-finish-load', () => {
-    mainWindow.webContents.executeJavaScript(
-      fs.readFileSync(`${__dirname}/pokeclicker-automation.js`).toString()
-    ).catch(e=>{});
+    // Update automation if needed
+    PokeclickerAutomationUpdater.checkForUpdatesAndRun(mainWindow.webContents.session.getUserAgent());
   });
 
   mainWindow.setMenuBarVisibility(false);
