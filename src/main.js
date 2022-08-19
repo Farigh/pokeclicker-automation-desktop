@@ -81,6 +81,14 @@ class PokeclickerAutomationUpdater
             }).on('error', (e) =>
             {
                 console.warn("Check for pokeclicker automation update failed.");
+
+                if (this.getCurrentVersion() != "")
+                {
+                    console.info("Running the local version of the automation.");
+
+                    // No update needed, run the automation right away
+                    this.runAutomation();
+                }
             });
     }
 
@@ -130,7 +138,7 @@ class PokeclickerAutomationUpdater
     static isNewerVersionAvailable(latestSha1)
     {
         console.info(`\n\nCurrent sha1: ${this.getCurrentVersion()}\nLatest sha1: ${latestSha1}\n\n`);
-        return this.getCurrentVersion() != latestSha1;
+        return (latestSha1 != "") && (this.getCurrentVersion() != latestSha1);
     }
 }
 
