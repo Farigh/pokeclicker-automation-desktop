@@ -15,12 +15,16 @@ const clientVersion = app.getVersion();
 
 const dataDir =  (electron.app || electron.remote.app).getPath('userData');
 
+/***********************************\
+ *   PokeclickerAutomation stuff   *|
+\***********************************/
+
 class PokeclickerAutomationUpdater
 {
     static automationDir = `pokeclicker-automation-master`;
     static automationFullPath = `${dataDir}/${this.automationDir}/`;
     static versionPath = `${this.automationFullPath}version.sha1`;
-    static latestCommitSha1Url = 'https://api.github.com/repos/farigh/pokeclicker-automation/commits?sha=master&per_page=1';
+    static latestCommitSha1Url = 'https://api.github.com/repos/Farigh/pokeclicker-automation/commits?sha=master&per_page=1';
 
     static getCurrentVersion()
     {
@@ -99,10 +103,15 @@ class PokeclickerAutomationUpdater
             fs.readFileSync(`${PokeclickerAutomationUpdater.automationFullPath}src/ComponentLoader.js`).toString()
         ).catch(e=>{});
 
-        // Run automation
-        let automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
+        // Load automation ScriptManager
         mainWindow.webContents.executeJavaScript(
-            `AutomationComponentLoader.loadFromUrl('${automationBaseUrl}');`);
+          fs.readFileSync(`${__dirname}/AutomationScriptManager.js`).toString()
+        ).catch(e=>{});
+
+        // Run automation
+        const automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
+        mainWindow.webContents.executeJavaScript(
+            `AutomationScriptManager.run('${automationBaseUrl}');`);
     }
 
     static downloadNewUpdate(newVersionSha1)
@@ -141,6 +150,10 @@ class PokeclickerAutomationUpdater
         return (latestSha1 != "") && (this.getCurrentVersion() != latestSha1);
     }
 }
+
+/***********************************\
+ *        Pokéclicker stuff        *|
+\***********************************/
 
 console.info('Data directory:', dataDir);
 
@@ -473,7 +486,7 @@ if (!isMainInstance) {
   try {
     autoUpdater.on('update-downloaded', () => {
       const userResponse = dialog.showMessageBoxSync(mainWindow, {
-        title: 'PokeClicker - Client Update Available!',
+        title: 'PokeClicker with Scripts - Client Update Available!',
         message: `There is a new client update available,\nWould you like to install it now?\n\n`,
         icon: `${__dirname}/icon.png`,
         buttons: ['Restart App Now', 'Later'],
