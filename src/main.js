@@ -15,6 +15,14 @@ const electron = require('electron');
 
 const dataDir =  (electron.app || electron.remote.app).getPath('userData');
 
+/**********************************\
+ *   Script configuration stuff   *|
+\**********************************/
+
+/***********************************\
+ *   PokeclickerAutomation stuff   *|
+\***********************************/
+
 class PokeclickerAutomationUpdater
 {
     static automationDir = `pokeclicker-automation-master`;
@@ -99,10 +107,15 @@ class PokeclickerAutomationUpdater
             fs.readFileSync(`${PokeclickerAutomationUpdater.automationFullPath}src/ComponentLoader.js`).toString()
         ).catch(e=>{});
 
+        // Load automation ScriptManager
+        mainWindow.webContents.executeJavaScript(
+          fs.readFileSync(`${__dirname}/AutomationScriptManager.js`).toString()
+        ).catch(e=>{});
+
         // Run automation
         let automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
         mainWindow.webContents.executeJavaScript(
-            `AutomationComponentLoader.loadFromUrl('${automationBaseUrl}');`);
+            `AutomationScriptManager.Run('${automationBaseUrl}');`);
     }
 
     static downloadNewUpdate(newVersionSha1)
