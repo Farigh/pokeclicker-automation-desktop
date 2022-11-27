@@ -10,7 +10,9 @@ class AutomationScriptManager
         this.__internal__setDefaultLocalStorageValue(this.__internal__defaultScriptDisableSettingsKey, false);
 
         this.__internal__injectCss();
+        this.__internal__initCustomData();
         this.__internal__buildMenu();
+        this.__internal__buildScriptEditModal();
 
         this.__internal__loadScripts();
     }
@@ -25,13 +27,43 @@ class AutomationScriptManager
     static __internal__defaultScriptDisableFeatureKey = `${this.__internal__defaultScriptKeyPrefix}FeatureDisabledByDefault`;
     static __internal__defaultScriptDisableSettingsKey = `${this.__internal__defaultScriptKeyPrefix}SettingsDisabledByDefault`;
 
+    static __internal__scriptMenuButtonLabel = null;
     static __internal__scriptListContainer = null;
+    static __internal__scriptEditPanel = {};
+
+    static __internal__customScriptDataKey = `${this.__internal__storageKeyPrefix}Custom-Scripts-Data`;
+    static __internal__customScriptList = [];
+    static __internal__customScriptListContainer = null;
+    static __internal__customScriptStorageKeys = new Set();
+
+    /**
+     * @brief Loads custom script data from the local storage
+     */
+    static __internal__initCustomData()
+    {
+        const currentData = localStorage.getItem(this.__internal__customScriptDataKey);
+
+        // No data to restore
+        if (!currentData)
+        {
+            return;
+        }
+
+        this.__internal__customScriptList = JSON.parse(currentData);
+
+        // Restore storage keys
+        for (const script of this.__internal__customScriptList)
+        {
+            this.__internal__customScriptStorageKeys.add(script.storageKey);
+        }
+    }
 
     /**
      * @brief Builds the script menu
      */
     static __internal__buildMenu()
     {
+        // Add the script list
         const scriptMenuContainer = document.createElement("div");
         scriptMenuContainer.classList.add("pokeWithScript-menu-container");
 
@@ -41,13 +73,10 @@ class AutomationScriptManager
         scriptMenuContainer.appendChild(menuButtonDiv);
 
         // Button label
-        const menuButtonLabelcontainer = document.createElement("span");
-        menuButtonLabelcontainer.classList.add("pokeWithScript-button-label");
-        const activeScriptCount = localStorage.getItem((this.__internal__defaultScriptEnabledKey) == "true") ? 1 : 0;
-        const totalScriptCount = 1;
-        const menuButtonLabel = document.createTextNode(`${activeScriptCount} / ${totalScriptCount}  script  active`);
-        menuButtonLabelcontainer.appendChild(menuButtonLabel);
-        menuButtonDiv.appendChild(menuButtonLabelcontainer);
+        this.__internal__scriptMenuButtonLabel = document.createElement("span");
+        this.__internal__scriptMenuButtonLabel.classList.add("pokeWithScript-button-label");
+        this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
+        menuButtonDiv.appendChild(this.__internal__scriptMenuButtonLabel);
 
         // Add the script list
         this.__internal__buildScriptList(scriptMenuContainer);
@@ -59,6 +88,60 @@ class AutomationScriptManager
 
         // Add the menu to the document
         document.body.appendChild(scriptMenuContainer);
+    }
+
+    /**
+     * @brief Builds the script edit modal
+     */
+    static __internal__buildScriptEditModal()
+    {
+        // Add the container
+        this.__internal__scriptEditPanel.container = document.createElement("div");
+        this.__internal__scriptEditPanel.container.hidden = true;
+        this.__internal__scriptEditPanel.container.classList.add("pokeWithScript-edit-container");
+
+        // Add the title
+        this.__internal__scriptEditPanel.tabTitle = document.createElement("div");
+        this.__internal__scriptEditPanel.tabTitle.classList.add("pokeWithScript-edit-title");
+        this.__internal__scriptEditPanel.container.appendChild(this.__internal__scriptEditPanel.tabTitle);
+
+        // Add the tab container
+        const tabContainer = document.createElement("div");
+        tabContainer.classList.add("pokeWithScript-edit-tab");
+        this.__internal__scriptEditPanel.container.appendChild(tabContainer);
+
+        // Script name input
+        const editNameContainer = document.createElement("div");
+        editNameContainer.appendChild(document.createTextNode("Script name: "));
+        this.__internal__scriptEditPanel.scriptTitle = document.createElement("div");
+        this.__internal__scriptEditPanel.scriptTitle.contentEditable = true;
+        this.__internal__scriptEditPanel.scriptTitle.spellcheck = false;
+        this.__internal__scriptEditPanel.scriptTitle.classList.add("pokeWithScript-edit-input");
+        editNameContainer.appendChild(this.__internal__scriptEditPanel.scriptTitle);
+        tabContainer.appendChild(editNameContainer);
+
+        // Script content input label
+        const editContentLabelContainer = document.createElement("div");
+        editContentLabelContainer.appendChild(document.createTextNode("Script content: "));
+        editContentLabelContainer.style.marginTop= "20px";
+        tabContainer.appendChild(editContentLabelContainer);
+
+        // Script content input
+        this.__internal__scriptEditPanel.scriptContent = document.createElement("div");
+        this.__internal__scriptEditPanel.scriptContent.contentEditable = true;
+        this.__internal__scriptEditPanel.scriptContent.spellcheck = false;
+        this.__internal__scriptEditPanel.scriptContent.ariaMultiline = true;
+        this.__internal__scriptEditPanel.scriptContent.classList.add("pokeWithScript-edit-script-area");
+        tabContainer.appendChild(this.__internal__scriptEditPanel.scriptContent);
+
+        // Save button
+        this.__internal__scriptEditPanel.saveButton = document.createElement("div");
+        this.__internal__scriptEditPanel.saveButton.classList.add("pokeWithScript-edit-save-button");
+        tabContainer.appendChild(this.__internal__scriptEditPanel.saveButton);
+        this.__internal__scriptEditPanel.saveButton.onclick = this.__internal__saveScriptChanges.bind(this);
+
+        // Add the modal to the document
+        document.body.appendChild(this.__internal__scriptEditPanel.container);
     }
 
     /**
@@ -92,6 +175,12 @@ class AutomationScriptManager
         defaultScriptDisableSettingsElem.style.marginLeft = "42px";
         defaultScriptContainer.appendChild(defaultScriptDisableSettingsElem);
 
+        this.__internal__customScriptListContainer = document.createElement("div");
+        this.__internal__updateCustomScriptList();
+        defaultScriptContainer.appendChild(this.__internal__customScriptListContainer);
+
+        defaultScriptContainer.appendChild(this.__internal__createAddScriptButton());
+
         contentContainer.appendChild(defaultScriptContainer);
     }
 
@@ -106,6 +195,24 @@ class AutomationScriptManager
             AutomationComponentLoader.loadFromUrl(this.__internal__automationBaseUrl,
                                                   localStorage.getItem(this.__internal__defaultScriptDisableFeatureKey) == "true",
                                                   localStorage.getItem(this.__internal__defaultScriptDisableSettingsKey) == "true");
+        }
+
+        for (const script of this.__internal__customScriptList)
+        {
+            if (localStorage.getItem(script.storageKey) != "true")
+            {
+                // Don't run disabled scripts
+                continue;
+            }
+
+            try
+            {
+                eval(script.content);
+            }
+            catch(error)
+            {
+                // TODO: inform the user
+            }
         }
     }
 
@@ -125,6 +232,36 @@ class AutomationScriptManager
         container.appendChild(defaultScriptLabel);
 
         return container;
+    }
+
+    /**
+     * @brief Creates the button to add new scripts
+     */
+    static __internal__createAddScriptButton()
+    {
+        const buttonContainer = document.createElement("div");
+        buttonContainer.style.height = "35px";
+        buttonContainer.style.marginTop = "5px";
+        const button = document.createElement("div");
+        button.classList.add("pokeWithScript-add-script-button");
+        buttonContainer.appendChild(button);
+
+        button.onclick = function()
+            {
+                this.__internal__scriptEditPanel.tabTitle.textContent = "Add a new script";
+                this.__internal__scriptEditPanel.scriptTitle.textContent = "New script";
+                this.__internal__scriptEditPanel.scriptContent.textContent = "/* Input your javascript here */";
+                this.__internal__scriptEditPanel.saveButton.textContent = "Save script"
+                this.__internal__scriptEditPanel.container.hidden = false;
+            }.bind(this);
+
+        const buttonLabel = document.createElement("span");
+        buttonLabel.textContent = "Add a new script";
+        buttonLabel.style.position = "relative";
+        buttonLabel.style.bottom = "9px";
+        buttonContainer.appendChild(buttonLabel);
+
+        return buttonContainer;
     }
 
     /**
@@ -150,9 +287,119 @@ class AutomationScriptManager
                 const wasChecked = buttonElem.getAttribute("checked") == "true";
                 buttonElem.setAttribute("checked", wasChecked ? "false" : "true");
                 localStorage.setItem(id, !wasChecked);
-            };
+                this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
+            }.bind(this);
 
         return buttonElem;
+    }
+
+    /**
+     * @brief Save the currently edited script changes and updates the script list
+     */
+    static __internal__saveScriptChanges()
+    {
+        const scriptName = this.__internal__scriptEditPanel.scriptTitle.textContent;
+        const scriptLines = this.__internal__getMultiLineTextContent(this.__internal__scriptEditPanel.scriptContent.childNodes);
+        const storageKey= this.__internal__generateScriptStorageKey();
+
+        // Enable the script by default
+        this.__internal__setDefaultLocalStorageValue(storageKey, true);
+
+        this.__internal__customScriptList.push({ name: scriptName, content: scriptLines, storageKey });
+
+        // Save to the changes to the local storage
+        const scriptJsonData = JSON.stringify(this.__internal__customScriptList);
+        localStorage.setItem(this.__internal__customScriptDataKey, scriptJsonData);
+
+        // Update the script list and menu button
+        this.__internal__updateCustomScriptList();
+        this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
+
+        // Hide the edit modal
+        this.__internal__scriptEditPanel.container.hidden = true;
+    }
+
+    static __internal__updateCustomScriptList()
+    {
+        // Clear the div content
+        this.__internal__customScriptListContainer.innerHTML = "";
+
+        for (const script of this.__internal__customScriptList)
+        {
+            const scriptLine = this.__internal__addScriptElement(script.name, script.storageKey);
+            this.__internal__customScriptListContainer.appendChild(scriptLine);
+        }
+    }
+
+    /**
+     * @brief Generates a new unique storage key
+     *
+     * @returns The new key
+     */
+    static __internal__generateScriptStorageKey()
+    {
+        let keyIndex = 1;
+        while (true)
+        {
+            const newKey = `${this.__internal__storageKeyPrefix}Custom-${keyIndex}`
+            if (this.__internal__customScriptStorageKeys.has(newKey))
+            {
+                keyIndex++;
+                continue;
+            }
+
+            this.__internal__customScriptStorageKeys.add(newKey);
+            return newKey;
+        }
+    }
+
+    /**
+     * @brief Computes the script menu info (active / total scripts)
+     *
+     * @returns The text to display
+     */
+    static __internal__getActiveScriptText()
+    {
+        const activeCustomScript = this.__internal__customScriptList.reduce(
+            (result, data) => result + ((localStorage.getItem(data.storageKey) == "true") ? 1 : 0), 0);
+        const activeScriptCount = ((localStorage.getItem(this.__internal__defaultScriptEnabledKey) == "true") ? 1 : 0)
+                                + activeCustomScript;
+        const totalScriptCount = 1 + this.__internal__customScriptList.length;
+        return `${activeScriptCount} / ${totalScriptCount}  script  active`;
+    }
+
+    /**
+     * @brief Parses the input text content and preserves line-breaks
+     *
+     * @param childNodes: The list of childs to process
+     */
+    static __internal__getMultiLineTextContent(childNodes)
+    {
+        let result = '';
+
+        for (const childNode of childNodes)
+        {
+            // Divs imples a new line
+            if (childNode.nodeName === 'DIV')
+            {
+                // Divs create new lines for themselves if they aren't already on one
+                result += '\n';
+            }
+
+            // Add the text content if it's a text node
+            if ((childNode.nodeType === Node.TEXT_NODE) && childNode.textContent)
+            {
+                result += childNode.textContent;
+            }
+
+            // If this node has childrens, process them
+            if (childNode.childNodes.length > 0)
+            {
+                result += this.__internal__getMultiLineTextContent(childNode.childNodes);
+            }
+        }
+
+        return result;
     }
 
     /**
@@ -178,14 +425,119 @@ class AutomationScriptManager
         const style = document.createElement('style');
         style.textContent = `
             /* Reset any style to avoid theme related issues */
-            .pokeWithScript-menu-container
+            .pokeWithScript-menu-container,
+            .pokeWithScript-edit-container
             {
                 all: initial;
+                font-family: "Source Sans Pro", "Arial", sans-serif;
+                color: #eeeeee;
+                white-space: pre;
             }
             .pokeWithScript-menu-container > *
             {
-                z-index: 999; /* Put it on top of everything else, so it's visible on the save selection screen  */
+                z-index: 90000; /* Put it on top of everything else, so it's visible on the save selection screen  */
             }
+
+            /*************************\
+            |*   Script edit modal   *|
+            \*************************/
+
+            .pokeWithScript-edit-container, .pokeWithScript-edit-container > *
+            {
+                z-index: 90001; /* Put it on top of the menu container */
+            }
+            .pokeWithScript-edit-container
+            {
+                position: fixed;
+                top: 0;
+                background-color: #333333;
+                border: 1px solid #555555;
+                border-radius: 5px;
+                height: calc(100% - 20px);
+                width: calc(100% - 20px);
+                margin: 10px;
+            }
+            .pokeWithScript-edit-title,
+            .pokeWithScript-edit-tab
+            {
+                background-color: #444444;
+                border: 1px solid #666666;
+                border-radius: 5px;
+                margin: 10px;
+                padding: 10px;
+            }
+            .pokeWithScript-edit-title
+            {
+                top: 1px;
+                position: relative;
+                border-bottom-left-radius: 0px;
+                border-bottom-right-radius: 0px;
+                border-bottom: 0px;
+                width: fit-content;
+                padding: 10px;
+                margin-bottom: 0px;
+            }
+            .pokeWithScript-edit-tab
+            {
+                height: calc(100% - 60px);
+                margin-top: 0px;
+                border-top-left-radius: 0px;
+            }
+
+            .pokeWithScript-edit-input,
+            .pokeWithScript-edit-script-area
+            {
+                color: #000000;
+                background-color: #aaaaaa;
+                user-select: text !important;
+                border-bottom: solid 1px #e9e9e9;
+                border-radius: 5px;
+                padding-top: 5px;
+                padding-bottom: 3px;
+                padding-right: 8px;
+                padding-left: 8px;
+                transition: color 1s;
+            }
+            .pokeWithScript-edit-input:focus,
+            .pokeWithScript-edit-script-area:focus
+            {
+                outline: none;
+                border-radius: 5px;
+            }
+            .pokeWithScript-edit-input
+            {
+                display: inline-block;
+                min-width: 20px;
+                margin: 0px 5px;
+            }
+            .pokeWithScript-edit-script-area
+            {
+                display: grid; /* Let it take the the whole width */
+                max-height: calc(100% - 104px);
+                overflow: auto;
+                font-family: monospace;
+                line-height: 18px;
+                margin-top: 5px;
+            }
+            .pokeWithScript-edit-save-button
+            {
+                background-color: #11c711;
+                margin-top: 5px;
+                border-radius: 5px;
+                padding: 5px 10px;
+                color: #063C0A;
+                display: inline-block;
+            }
+            .pokeWithScript-edit-save-button:hover
+            {
+                cursor: pointer;
+                background-color: #13EF13;
+            }
+
+            /*******************\
+            |*   Script menu   *|
+            \*******************/
+
             .pokeWithScript-main-button
             {
                 position: fixed;
@@ -252,10 +604,7 @@ class AutomationScriptManager
             .pokeWithScript-menu-list-content
             {
                 padding: 10px;
-                color: #eeeeee;
-                white-space: pre;
                 line-height: 24px;
-                font-family: "Source Sans Pro", "Arial", sans-serif;
                 font-size: 0.875rem;
                 font-weight: 400;
                 text-align: left;
@@ -355,6 +704,51 @@ class AutomationScriptManager
                 transform: rotate(-20deg);
                 right: 2px;
                 top: 6px;
+            }
+
+            /*************************\
+            |*   Add script button   *|
+            \*************************/
+
+            .pokeWithScript-add-script-button
+            {
+                position: relative;
+                width:28px;
+                height:28px;
+                border-radius: 50%;
+                background-color: #11c711;
+                margin-top: 5px;
+                display: inline-block;
+                margin-right: 12px;
+                margin-left: 2px;
+            }
+            .pokeWithScript-add-script-button:hover
+            {
+                cursor: pointer;
+                background-color: #13EF13;
+            }
+            .pokeWithScript-add-script-button::before,
+            .pokeWithScript-add-script-button::after
+            {
+                position: absolute;
+                content: "";
+                background-color: #063C0A;
+            }
+            .pokeWithScript-add-script-button::before
+            {
+                left: 50%;
+                top: 7px;
+                bottom: 7px;
+                width: 2px;
+                transform: translateX(-50%);
+            }
+            .pokeWithScript-add-script-button::after
+            {
+                top: 50%;
+                left: 7px;
+                right: 7px;
+                height: 2px;
+                transform: translateY(-50%);
             }`;
         document.head.append(style);
     }
