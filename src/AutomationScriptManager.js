@@ -174,23 +174,25 @@ class AutomationScriptManager
         // Add pokeclicker automation to the list
         const defaultScriptContainer = document.createElement("div");
 
-        const defaultScriptElem = this.__internal__addScriptElement("Pokeclicker automation", this.__internal__defaultScriptEnabledKey);
+        const defaultScriptElem = this.__internal__addScriptElement(
+            { name: "Pokeclicker automation", storageKey: this.__internal__defaultScriptEnabledKey }, false);
         defaultScriptContainer.appendChild(defaultScriptElem);
 
         this.__internal__defaultScriptErrorsLabel = document.createElement("span");
         this.__internal__defaultScriptErrorsLabel.style.color = "#FF7E7E";
         defaultScriptElem.appendChild(this.__internal__defaultScriptErrorsLabel);
 
-        const defaultScriptDisableFeaturesElem =
-            this.__internal__addScriptElement("Disable all features by default", this.__internal__defaultScriptDisableFeatureKey);
+        const defaultScriptDisableFeaturesElem = this.__internal__addScriptElement(
+            { name: "Disable all features by default", storageKey: this.__internal__defaultScriptDisableFeatureKey }, false);
         defaultScriptDisableFeaturesElem.style.marginLeft = "42px";
         defaultScriptContainer.appendChild(defaultScriptDisableFeaturesElem);
-        const defaultScriptDisableSettingsElem =
-            this.__internal__addScriptElement("Disable all settings by default", this.__internal__defaultScriptDisableSettingsKey);
+        const defaultScriptDisableSettingsElem = this.__internal__addScriptElement(
+            { name: "Disable all settings by default", storageKey: this.__internal__defaultScriptDisableSettingsKey }, false);
         defaultScriptDisableSettingsElem.style.marginLeft = "42px";
         defaultScriptContainer.appendChild(defaultScriptDisableSettingsElem);
 
         this.__internal__customScriptListContainer = document.createElement("div");
+        this.__internal__customScriptListContainer.style.minWidth = "340px";
         this.__internal__updateCustomScriptList();
         defaultScriptContainer.appendChild(this.__internal__customScriptListContainer);
 
@@ -282,19 +284,74 @@ class AutomationScriptManager
     /**
      * @brief Adds a script toogle button with its label
      *
-     * @param {string} label
-     * @param {string} storageKey
+     * @param script: The script date
+     * @param canEdit: True if the user can edit or delete this script, false otherwise
      */
-    static __internal__addScriptElement(label, storageKey, errors)
+    static __internal__addScriptElement(script, canEdit)
     {
         const container = document.createElement("div");
+        container.style.height = "32px";
 
-        const defaultScriptEnableButton = this.__internal__addLocalStorageBoundToggleButton(storageKey);
+        // Add the enable button
+        const defaultScriptEnableButton = this.__internal__addLocalStorageBoundToggleButton(script.storageKey);
         container.appendChild(defaultScriptEnableButton);
-        const defaultScriptLabel = document.createTextNode(label);
-        container.appendChild(defaultScriptLabel);
 
-        if (errors)
+        // Add the script name
+        const scriptLabel = document.createElement("span");
+        scriptLabel.textContent = script.name;
+        container.appendChild(scriptLabel);
+
+        if (canEdit)
+        {
+            // Add the delete button
+            const deleteButton = this.__internal__createDeleteButton();
+            container.appendChild(deleteButton);
+
+            const deleteConfirmationContainer = document.createElement("span");
+            deleteConfirmationContainer.classList.add("pokeWithScript-confirmation-container");
+            container.appendChild(deleteConfirmationContainer);
+
+            deleteConfirmationContainer.appendChild(document.createTextNode("Are you sure ?"));
+
+            const noButton = document.createElement("div");
+            noButton.classList.add("pokeWithScript-no-button");
+            noButton.textContent = "No";
+            deleteConfirmationContainer.appendChild(noButton);
+
+            const yesButton = document.createElement("div");
+            yesButton.classList.add("pokeWithScript-yes-button");
+            yesButton.textContent = "Yes";
+            deleteConfirmationContainer.appendChild(yesButton);
+
+            noButton.onclick = function()
+                {
+                    deleteConfirmationContainer.classList.remove("visible");
+                    deleteButton.hidden = false;
+                };
+            yesButton.onclick = function()
+                {
+                    deleteConfirmationContainer.classList.remove("visible");
+                    deleteButton.hidden = false;
+
+                    // Remove the storage key
+                    this.__internal__customScriptStorageKeys.delete(script.storageKey);
+                    localStorage.removeItem(script.storageKey);
+
+                    // Remove the script
+                    const scriptIndex = this.__internal__customScriptList.findIndex(p => p.storageKey == script.storageKey);
+                    this.__internal__customScriptList.splice(scriptIndex, 1);
+                    this.__internal__saveScriptData();
+                    this.__internal__updateCustomScriptList();
+                }.bind(this);
+
+            deleteButton.onclick = function()
+                {
+                    deleteConfirmationContainer.classList.add("visible");
+                    deleteButton.hidden = true;
+                };
+        }
+
+        if (script.errors)
         {
             const errorLabel = document.createElement("span");
             errorLabel.style.color = "#FF7E7E";
@@ -307,7 +364,36 @@ class AutomationScriptManager
     }
 
     /**
+     * @brief Creates a delete button
+     *
+     * @returns The created button
+     */
+    static __internal__createDeleteButton()
+    {
+        const deleteButtonContainer = document.createElement("div");
+        deleteButtonContainer.classList.add("pokeWithScript-trash-container");
+
+        const deleteButtonTrashLid = document.createElement("div");
+        deleteButtonTrashLid.classList.add("pokeWithScript-trash-lid");
+        deleteButtonContainer.appendChild(deleteButtonTrashLid);
+
+        const deleteButtonTrashCan = document.createElement("div");
+        deleteButtonTrashCan.classList.add("pokeWithScript-trash-can");
+        deleteButtonContainer.appendChild(deleteButtonTrashCan);
+
+        const deleteButtonTooltip = document.createElement("div");
+        deleteButtonTooltip.classList.add("pokeWithScript-trash-tooltip");
+        deleteButtonContainer.appendChild(deleteButtonTooltip);
+
+        deleteButtonTooltip.textContent = "Delete";
+
+        return deleteButtonContainer;
+    }
+
+    /**
      * @brief Creates the button to add new scripts
+     *
+     * @returns The created button
      */
     static __internal__createAddScriptButton()
     {
@@ -383,13 +469,7 @@ class AutomationScriptManager
         this.__internal__customScriptList.push({ name: scriptName, content: scriptLines, storageKey });
 
         // Save to the changes to the local storage
-        const scriptJsonData = JSON.stringify(this.__internal__customScriptList, function(key, value)
-            {
-                // Don't serialize errors
-                if (key == "errors") return undefined;
-                else return value;
-            });
-        localStorage.setItem(this.__internal__customScriptDataKey, scriptJsonData);
+        this.__internal__saveScriptData();
 
         // Update the script list and menu button
         this.__internal__updateCustomScriptList();
@@ -402,6 +482,20 @@ class AutomationScriptManager
         this.__internal__scriptEditPanel.container.hidden = true;
     }
 
+    /**
+     * @brief Saves the script data in the local storage
+     */
+    static __internal__saveScriptData()
+    {
+        const scriptJsonData = JSON.stringify(this.__internal__customScriptList, function(key, value)
+            {
+                // Don't serialize errors
+                if (key == "errors") return undefined;
+                else return value;
+            });
+        localStorage.setItem(this.__internal__customScriptDataKey, scriptJsonData);
+    }
+
     static __internal__updateCustomScriptList()
     {
         // Clear the div content
@@ -409,7 +503,7 @@ class AutomationScriptManager
 
         for (const script of this.__internal__customScriptList)
         {
-            const scriptLine = this.__internal__addScriptElement(script.name, script.storageKey, script.errors);
+            const scriptLine = this.__internal__addScriptElement(script, true);
             this.__internal__customScriptListContainer.appendChild(scriptLine);
         }
     }
@@ -525,6 +619,20 @@ class AutomationScriptManager
             |*   Script edit modal   *|
             \*************************/
 
+            .pokeWithScript-confirmation-container
+            {
+                background-color: #666666;
+                border-radius: 4px;
+                padding: 3px;
+                display: none;
+                padding-left: 5px;
+                padding-right: 5px;
+                margin-left: 5px;
+            }
+            .pokeWithScript-confirmation-container.visible
+            {
+                display: inline-block;
+            }
             .pokeWithScript-edit-container, .pokeWithScript-edit-container > *
             {
                 z-index: 90001; /* Put it on top of the menu container */
@@ -603,19 +711,44 @@ class AutomationScriptManager
                 margin-top: 5px;
             }
             .pokeWithScript-edit-save-button,
+            .pokeWithScript-reload-button,
+            .pokeWithScript-yes-button,
+            .pokeWithScript-no-button
+            {
+                display: inline-block;
+                border-radius: 5px;
+            }
+            .pokeWithScript-yes-button,
+            .pokeWithScript-no-button
+            {
+                margin-left: 5px;
+                padding: 0px 3px;
+            }
+            .pokeWithScript-edit-save-button,
             .pokeWithScript-reload-button
             {
                 margin-top: 5px;
                 border-radius: 5px;
                 padding: 5px 10px;
-                color: #063C0A;
-                display: inline-block;
             }
-            .pokeWithScript-edit-save-button
+            .pokeWithScript-no-button
             {
+                color: #FFFFFF;
+                background-color: #D90000;
+            }
+            .pokeWithScript-no-button:hover
+            {
+                cursor: pointer;
+                background-color: #df2828;
+            }
+            .pokeWithScript-edit-save-button,
+            .pokeWithScript-yes-button
+            {
+                color: #063C0A;
                 background-color: #11C711;
             }
-            .pokeWithScript-edit-save-button:hover
+            .pokeWithScript-edit-save-button:hover,
+            .pokeWithScript-yes-button:hover
             {
                 background-color: #13EF13;
             }
@@ -629,8 +762,11 @@ class AutomationScriptManager
             {
                 background-color: #CF9A25;
             }
+            .pokeWithScript-yes-button:hover,
             .pokeWithScript-edit-save-button:hover,
-            .pokeWithScript-reload-button:hover
+            .pokeWithScript-reload-button:hover,
+            .pokeWithScript-yes-button:hover,
+            .pokeWithScript-no-button:hover
             {
                 cursor: pointer;
             }
@@ -717,6 +853,108 @@ class AutomationScriptManager
                 {
                     overflow: auto;
                 }
+            }
+
+            .pokeWithScript-delete-button
+            {
+                width: 30px;
+                height: 30px;
+                border-radius: 4px;
+                background-color: #EE0000;
+                color: #111111;
+            }
+            .pokeWithScript-delete-button:hover
+            {
+                cursor: pointer;
+                background-color: #FF0000;
+            }
+
+            /*********************\
+            |*   Delete button   *|
+            \*********************/
+
+            .pokeWithScript-trash-container
+            {
+                position: relative;
+                cursor: pointer;
+                display: inline-block;
+                top: 4px;
+                margin-left: 7px;
+            }
+            .pokeWithScript-trash-lid
+            {
+                position: relative;
+                top: 2px;
+                width: 18px;
+                height: 6px;
+                background: white;
+                border: solid 2px #8b1b1b;
+                border-radius: 2px;
+
+                transition: all .2s ease-in-out;
+                transform-origin: left;
+                transform: rotate(0deg) translateY(0px);
+            }
+            .pokeWithScript-trash-lid::before
+            {
+                content: '';
+                position: absolute;
+                width: 8px;
+                height: 4px;
+                top: -5px;
+                left: 3px;
+                background: white;
+                border: 2px solid #8b1b1b;
+                border-bottom: 0px;
+                border-top-left-radius: 2px;
+                border-top-right-radius: 2px;
+            }
+            .pokeWithScript-trash-can
+            {
+                position: relative;
+                left: 2px;
+                width: 14px;
+                height: 14px;
+                background: white;
+                border: solid 2px #8b1b1b;
+                border-radius: 0 0 3px 3px;
+            }
+            .pokeWithScript-trash-can::before
+            {
+                content: '';
+                position: absolute;
+                top: 2px;
+                left: 2px;
+                width: 6px;
+                height: 8px;
+                border-right: 2px solid #8b1b1b;
+                border-left: 2px solid #8b1b1b;
+            }
+            .pokeWithScript-trash-tooltip
+            {
+                position: absolute;
+                background: #777777;
+                color: white;
+                font-size: 10px;
+                line-height: 15px;
+                padding: 2px 4px;
+                border-radius: 2px;
+                left: -10px;
+                bottom: 0px;
+                opacity: 0;
+                z-index: 99999;
+                pointer-events: none;
+
+                transition: all .4s ease .4s;
+            }
+            .pokeWithScript-trash-container:hover .pokeWithScript-trash-lid
+            {
+                transform: rotate(-30deg) translateY(-2px);
+            }
+            .pokeWithScript-trash-container:hover .pokeWithScript-trash-tooltip
+            {
+                bottom: -22px;
+                opacity: 1;
             }
 
             /*********************\
