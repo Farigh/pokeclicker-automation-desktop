@@ -75,6 +75,11 @@ class AutomationScriptManager
         menuButtonDiv.classList.add("pokeWithScript-main-button");
         scriptMenuContainer.appendChild(menuButtonDiv);
 
+        menuButtonDiv.onclick = function()
+            {
+                this.__internal__scriptListContainer.classList.toggle('visible');
+            }.bind(this);
+
         // Button label
         const scriptMenuButtonLabelContainer = document.createElement("span");
         scriptMenuButtonLabelContainer.classList.add("pokeWithScript-button-label");
@@ -90,11 +95,6 @@ class AutomationScriptManager
 
         // Add the script list
         this.__internal__buildScriptList(scriptMenuContainer);
-
-        menuButtonDiv.onclick = function()
-            {
-                this.__internal__scriptListContainer.classList.toggle('visible');
-            }.bind(this);
 
         // Add the menu to the document
         document.body.appendChild(scriptMenuContainer);
@@ -194,7 +194,21 @@ class AutomationScriptManager
         this.__internal__updateCustomScriptList();
         defaultScriptContainer.appendChild(this.__internal__customScriptListContainer);
 
+        // Add new script button
         defaultScriptContainer.appendChild(this.__internal__createAddScriptButton());
+
+        // Add the reload button
+        this.__internalReloadButtonContainer = document.createElement("div");
+        this.__internalReloadButtonContainer.hidden = true;
+        this.__internalReloadButtonContainer.style.color = "#eb963f";
+        this.__internalReloadButtonContainer.appendChild(document.createTextNode("Changes will only be applied after reloading"));
+        const reloadButton = document.createElement("div");
+        reloadButton.classList.add("pokeWithScript-reload-button");
+        reloadButton.textContent = "Reload";
+        reloadButton.onclick = function() { location.reload(); };
+        this.__internalReloadButtonContainer.appendChild(reloadButton);
+
+        defaultScriptContainer.appendChild(this.__internalReloadButtonContainer);
 
         contentContainer.appendChild(defaultScriptContainer);
     }
@@ -346,6 +360,9 @@ class AutomationScriptManager
                 buttonElem.setAttribute("checked", wasChecked ? "false" : "true");
                 localStorage.setItem(id, !wasChecked);
                 this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
+
+                // Inform the user that the game needs to be reloaded for the changes to work
+                this.__internalReloadButtonContainer.hidden = false;
             }.bind(this);
 
         return buttonElem;
@@ -377,6 +394,9 @@ class AutomationScriptManager
         // Update the script list and menu button
         this.__internal__updateCustomScriptList();
         this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
+
+        // Inform the user that the game needs to be reloaded for the changes to work
+        this.__internalReloadButtonContainer.hidden = false;
 
         // Hide the edit modal
         this.__internal__scriptEditPanel.container.hidden = true;
@@ -582,19 +602,37 @@ class AutomationScriptManager
                 line-height: 18px;
                 margin-top: 5px;
             }
-            .pokeWithScript-edit-save-button
+            .pokeWithScript-edit-save-button,
+            .pokeWithScript-reload-button
             {
-                background-color: #11c711;
                 margin-top: 5px;
                 border-radius: 5px;
                 padding: 5px 10px;
                 color: #063C0A;
                 display: inline-block;
             }
+            .pokeWithScript-edit-save-button
+            {
+                background-color: #11C711;
+            }
             .pokeWithScript-edit-save-button:hover
             {
-                cursor: pointer;
                 background-color: #13EF13;
+            }
+            .pokeWithScript-reload-button
+            {
+                background-color: #C78F11;
+                color: #1a1300;
+                margin-left: 5px;
+            }
+            .pokeWithScript-reload-button:hover
+            {
+                background-color: #CF9A25;
+            }
+            .pokeWithScript-edit-save-button:hover,
+            .pokeWithScript-reload-button:hover
+            {
+                cursor: pointer;
             }
 
             /*******************\
