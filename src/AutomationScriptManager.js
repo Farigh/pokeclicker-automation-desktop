@@ -22,12 +22,15 @@ class AutomationScriptManager
     \******************************/
 
     static __internal__storageKeyPrefix = "Pokeclicker-Scripts-";
+    static __internal__defaultScriptErrors = null;
+    static __internal__defaultScriptErrorsLabel = null;
     static __internal__defaultScriptKeyPrefix = `${this.__internal__storageKeyPrefix}Farigh-Automation-`;
     static __internal__defaultScriptEnabledKey = `${this.__internal__defaultScriptKeyPrefix}Enabled`;
     static __internal__defaultScriptDisableFeatureKey = `${this.__internal__defaultScriptKeyPrefix}FeatureDisabledByDefault`;
     static __internal__defaultScriptDisableSettingsKey = `${this.__internal__defaultScriptKeyPrefix}SettingsDisabledByDefault`;
 
     static __internal__scriptMenuButtonLabel = null;
+    static __internal__scriptMenuButtonErrorLabel = null;
     static __internal__scriptListContainer = null;
     static __internal__scriptEditPanel = {};
 
@@ -73,10 +76,17 @@ class AutomationScriptManager
         scriptMenuContainer.appendChild(menuButtonDiv);
 
         // Button label
+        const scriptMenuButtonLabelContainer = document.createElement("span");
+        scriptMenuButtonLabelContainer.classList.add("pokeWithScript-button-label");
+        menuButtonDiv.appendChild(scriptMenuButtonLabelContainer);
         this.__internal__scriptMenuButtonLabel = document.createElement("span");
-        this.__internal__scriptMenuButtonLabel.classList.add("pokeWithScript-button-label");
         this.__internal__scriptMenuButtonLabel.textContent = this.__internal__getActiveScriptText();
-        menuButtonDiv.appendChild(this.__internal__scriptMenuButtonLabel);
+        scriptMenuButtonLabelContainer.appendChild(this.__internal__scriptMenuButtonLabel);
+
+        // Error label
+        this.__internal__scriptMenuButtonErrorLabel = document.createElement("span");
+        this.__internal__scriptMenuButtonErrorLabel.classList.add("pokeWithScript-button-error-label");
+        scriptMenuButtonLabelContainer.appendChild(this.__internal__scriptMenuButtonErrorLabel);
 
         // Add the script list
         this.__internal__buildScriptList(scriptMenuContainer);
@@ -166,6 +176,11 @@ class AutomationScriptManager
 
         const defaultScriptElem = this.__internal__addScriptElement("Pokeclicker automation", this.__internal__defaultScriptEnabledKey);
         defaultScriptContainer.appendChild(defaultScriptElem);
+
+        this.__internal__defaultScriptErrorsLabel = document.createElement("span");
+        this.__internal__defaultScriptErrorsLabel.style.color = "#FF7E7E";
+        defaultScriptElem.appendChild(this.__internal__defaultScriptErrorsLabel);
+
         const defaultScriptDisableFeaturesElem =
             this.__internal__addScriptElement("Disable all features by default", this.__internal__defaultScriptDisableFeatureKey);
         defaultScriptDisableFeaturesElem.style.marginLeft = "42px";
@@ -192,11 +207,22 @@ class AutomationScriptManager
         // Load the default script, if enabled
         if (localStorage.getItem(this.__internal__defaultScriptEnabledKey) == "true")
         {
-            AutomationComponentLoader.loadFromUrl(this.__internal__automationBaseUrl,
-                                                  localStorage.getItem(this.__internal__defaultScriptDisableFeatureKey) == "true",
-                                                  localStorage.getItem(this.__internal__defaultScriptDisableSettingsKey) == "true");
+            try
+            {
+                AutomationComponentLoader.loadFromUrl(this.__internal__automationBaseUrl,
+                                                      localStorage.getItem(this.__internal__defaultScriptDisableFeatureKey) == "true",
+                                                      localStorage.getItem(this.__internal__defaultScriptDisableSettingsKey) == "true");
+            }
+            catch(error)
+            {
+                this.__internal__defaultScriptErrorsLabel.textContent = "⚠️ Error occured";
+                this.__internal__defaultScriptErrorsLabel.style.marginLeft = "5px";
+                this.__internal__defaultScriptErrors = error;
+            }
         }
 
+        // Load custom scripts
+        let customScriptsErrorCount = 0;
         for (const script of this.__internal__customScriptList)
         {
             if (localStorage.getItem(script.storageKey) != "true")
@@ -211,8 +237,31 @@ class AutomationScriptManager
             }
             catch(error)
             {
-                // TODO: inform the user
+                script.errors = error;
+                customScriptsErrorCount++;
             }
+        }
+
+        if (customScriptsErrorCount > 0)
+        {
+            this.__internal__updateCustomScriptList();
+        }
+
+        // Update the menu button label
+        if ((customScriptsErrorCount > 0) || (this.__internal__defaultScriptErrors != null))
+        {
+            const failedScripts = (this.__internal__defaultScriptErrors ? 1 : 0) + customScriptsErrorCount;
+            this.__internal__scriptMenuButtonErrorLabel.appendChild(document.createTextNode(",  "));
+            const errorLabel = document.createElement("span");
+            errorLabel.style.color = "#FF7E7E";
+            errorLabel.textContent = `${failedScripts}  error${failedScripts > 1 ? "s" : ""}`;
+            this.__internal__scriptMenuButtonErrorLabel.appendChild(errorLabel);
+        }
+
+        // Rethrow the error if any occured in the default script
+        if (this.__internal__defaultScriptErrors)
+        {
+            throw this.__internal__defaultScriptErrors;
         }
     }
 
@@ -222,7 +271,7 @@ class AutomationScriptManager
      * @param {string} label
      * @param {string} storageKey
      */
-    static __internal__addScriptElement(label, storageKey)
+    static __internal__addScriptElement(label, storageKey, errors)
     {
         const container = document.createElement("div");
 
@@ -230,6 +279,15 @@ class AutomationScriptManager
         container.appendChild(defaultScriptEnableButton);
         const defaultScriptLabel = document.createTextNode(label);
         container.appendChild(defaultScriptLabel);
+
+        if (errors)
+        {
+            const errorLabel = document.createElement("span");
+            errorLabel.style.color = "#FF7E7E";
+            errorLabel.style.marginLeft = "5px";
+            errorLabel.textContent = "⚠️ Error occured";
+            container.appendChild(errorLabel);
+        }
 
         return container;
     }
@@ -308,7 +366,12 @@ class AutomationScriptManager
         this.__internal__customScriptList.push({ name: scriptName, content: scriptLines, storageKey });
 
         // Save to the changes to the local storage
-        const scriptJsonData = JSON.stringify(this.__internal__customScriptList);
+        const scriptJsonData = JSON.stringify(this.__internal__customScriptList, function(key, value)
+            {
+                // Don't serialize errors
+                if (key == "errors") return undefined;
+                else return value;
+            });
         localStorage.setItem(this.__internal__customScriptDataKey, scriptJsonData);
 
         // Update the script list and menu button
@@ -326,7 +389,7 @@ class AutomationScriptManager
 
         for (const script of this.__internal__customScriptList)
         {
-            const scriptLine = this.__internal__addScriptElement(script.name, script.storageKey);
+            const scriptLine = this.__internal__addScriptElement(script.name, script.storageKey, script.errors);
             this.__internal__customScriptListContainer.appendChild(scriptLine);
         }
     }
