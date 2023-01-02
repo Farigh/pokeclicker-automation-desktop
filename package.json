@@ -9,11 +9,11 @@
   "main": "src/main.js",
   "scripts": {
     "start": "electron ./",
-    "dist:32": "electron-builder --ia32",
-    "dist:64": "electron-builder --x64 -c.artifactName=${name}-64bit-setup-${version}.${ext} --publish=never",
-    "win": "electron-builder --windows portable -c.artifactName=${name}-portable-${version}.${ext} --publish=never",
-    "linux:arm64": "electron-builder --linux deb rpm --arm64 --publish=never",
-    "linux:x64": "electron-builder --linux deb rpm --x64 --publish=never",
+    "win": "electron-builder --ia32 --x64 -c.artifactName=${name}-setup-${version}.${ext} --publish=never",
+    "win-portable": "electron-builder --windows portable -c.artifactName=${name}-portable-${version}.${ext} --publish=never",
+    "linux": "electron-builder --linux deb rpm --arm64 --x64 --publish=never",
+    "linux-publish": "electron-builder --linux deb rpm --arm64 --x64 --publish=always",
+    "win-publish": "electron-builder --ia32 --x64 -c.artifactName=${name}-setup-${version}.${ext} --publish=always && electron-builder --windows portable -c.artifactName=${name}-portable-${version}.${ext} --publish=always",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": {

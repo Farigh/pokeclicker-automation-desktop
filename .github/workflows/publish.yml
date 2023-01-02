@@ -1,14 +1,10 @@
 # This workflow will do a clean installation of node dependencies, cache/restore them, build the source code and run tests across different versions of node
 # For more information see: https://help.github.com/actions/language-and-framework-guides/using-nodejs-with-github-actions
 
-name: Node.js CI
+name: Publish CI
 
 on:
     workflow_dispatch:
-    push:
-        branches: [ "master" ]
-    pull_request:
-        branches: [ "master" ]
 
 jobs:
     windows-build:
@@ -25,10 +21,10 @@ jobs:
               run: npm ci
 
             - name: Build windows setup
-              run: npm run-script win
+              run: npm run-script win-publish
+              env:
+                GH_TOKEN: ${{ secrets.github_token }}
 
-            - name: Build windows portable
-              run: npm run-script win-portable
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v3.1.0
@@ -36,7 +32,6 @@ jobs:
                 name: windows-artifacts
                 path: |
                   dist/*/resources/app.asar
-                  dist/pokeclicker-desktop-with-scripts-*.exe
 
     linux-build:
         runs-on: ubuntu-latest
@@ -52,12 +47,6 @@ jobs:
               run: npm ci
 
             - name: Build linux arm64 and x64
-              run: npm run-script linux
-
-            - name: Upload artifacts
-              uses: actions/upload-artifact@v3.1.0
-              with:
-                name: linux-artifacts
-                path: |
-                  dist/pokeclicker-desktop-with-scripts*.deb
-                  dist/pokeclicker-desktop-with-scripts*.rpm
+              run: npm run-script linux-publish
+              env:
+                GH_TOKEN: ${{ secrets.github_token }}
