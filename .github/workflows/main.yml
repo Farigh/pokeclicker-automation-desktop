@@ -24,11 +24,11 @@ jobs:
             - name: Install Node.js dependencies
               run: npm ci
 
-            - name: Build win-x64
-              run: npm run-script dist:64
-
-            - name: Build win-portable
+            - name: Build windows setup
               run: npm run-script win
+
+            - name: Build windows portable
+              run: npm run-script win-portable
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v3.1.0
@@ -51,11 +51,8 @@ jobs:
             - name: Install Node.js dependencies
               run: npm ci
 
-            - name: Build linux-arm64
-              run: npm run-script linux:arm64
-
-            - name: Build linux-x64
-              run: npm run-script linux:x64
+            - name: Build linux arm64 and x64
+              run: npm run-script linux
 
             - name: Upload artifacts
               uses: actions/upload-artifact@v3.1.0
