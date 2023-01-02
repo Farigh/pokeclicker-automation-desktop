@@ -4,6 +4,7 @@
 
 const { autoUpdater } = require('electron-updater');
 const { app, BrowserWindow, dialog } = require('electron');
+const url = require('url');
 const DiscordRPC = require('discord-rpc');
 const https = require('https');
 const fs = require('fs');
