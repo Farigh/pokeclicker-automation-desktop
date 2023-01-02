@@ -110,16 +110,87 @@ class AutomationScriptManager
         this.__internal__scriptEditPanel.container.hidden = true;
         this.__internal__scriptEditPanel.container.classList.add("pokeWithScript-edit-container");
 
-        // Add the title
-        this.__internal__scriptEditPanel.tabTitle = document.createElement("div");
-        this.__internal__scriptEditPanel.tabTitle.classList.add("pokeWithScript-edit-title");
-        this.__internal__scriptEditPanel.container.appendChild(this.__internal__scriptEditPanel.tabTitle);
+        // Add tab title container
+        const tabTitleContainer = document.createElement("div");
+        tabTitleContainer.style.marginLeft = "10px";
+        tabTitleContainer.style.marginTop = "10px";
+        this.__internal__scriptEditPanel.container.appendChild(tabTitleContainer);
 
-        // Add the tab container
-        const tabContainer = document.createElement("div");
-        tabContainer.classList.add("pokeWithScript-edit-tab");
-        this.__internal__scriptEditPanel.container.appendChild(tabContainer);
+        // Add the Edit title
+        this.__internal__scriptEditPanel.editTabTitle = document.createElement("div");
+        this.__internal__scriptEditPanel.editTabTitle.classList.add("pokeWithScript-edit-title");
+        tabTitleContainer.appendChild(this.__internal__scriptEditPanel.editTabTitle);
 
+        // Add the Error title
+        this.__internal__scriptEditPanel.errorTabTitle = document.createElement("div");
+        this.__internal__scriptEditPanel.errorTabTitle.classList.add("hidden");
+        this.__internal__scriptEditPanel.errorTabTitle.classList.add("pokeWithScript-edit-title");
+        this.__internal__scriptEditPanel.errorTabTitle.textContent = "Errors";
+        tabTitleContainer.appendChild(this.__internal__scriptEditPanel.errorTabTitle);
+
+        // Add onclick events
+        this.__internal__scriptEditPanel.editTabTitle.onclick = function()
+            {
+                this.__internal__switchToTab("edit");
+            }.bind(this);
+        this.__internal__scriptEditPanel.errorTabTitle.onclick = function()
+            {
+                this.__internal__switchToTab("error");
+            }.bind(this);
+
+        // Add the Edit tab container
+        this.__internal__scriptEditPanel.editTabContainer = document.createElement("div");
+        this.__internal__scriptEditPanel.editTabContainer.classList.add("pokeWithScript-edit-tab");
+        this.__internal__scriptEditPanel.container.appendChild(this.__internal__scriptEditPanel.editTabContainer);
+
+        this.__internal__addEditModalContent(this.__internal__scriptEditPanel.editTabContainer);
+
+        // Add the Error tab container
+        this.__internal__scriptEditPanel.errorTabContainer = document.createElement("div");
+        this.__internal__scriptEditPanel.errorTabContainer.classList.add("pokeWithScript-edit-tab");
+
+        this.__internal__scriptEditPanel.errorTabContainer.appendChild(document.createTextNode("The following error(s) occured:"));
+
+        this.__internal__scriptEditPanel.errorContent = document.createElement("div");
+        this.__internal__scriptEditPanel.errorContent.classList.add("pokeWithScript-script-errors");
+        this.__internal__scriptEditPanel.errorTabContainer.appendChild(this.__internal__scriptEditPanel.errorContent);
+
+        this.__internal__scriptEditPanel.container.appendChild(this.__internal__scriptEditPanel.errorTabContainer);
+
+        // Add the modal to the document
+        document.body.appendChild(this.__internal__scriptEditPanel.container);
+    }
+
+    /**
+     * @brief Switches to the given @p tabType
+     *
+     * @param {string} tabType: The type of tab to switch to
+     */
+    static __internal__switchToTab(tabType)
+    {
+        if (tabType == "edit")
+        {
+            this.__internal__scriptEditPanel.errorTabTitle.classList.add("hidden");
+            this.__internal__scriptEditPanel.editTabTitle.classList.remove("hidden");
+            this.__internal__scriptEditPanel.errorTabContainer.hidden = true;
+            this.__internal__scriptEditPanel.editTabContainer.hidden = false;
+        }
+        else
+        {
+            this.__internal__scriptEditPanel.errorTabTitle.classList.remove("hidden");
+            this.__internal__scriptEditPanel.editTabTitle.classList.add("hidden");
+            this.__internal__scriptEditPanel.errorTabContainer.hidden = false;
+            this.__internal__scriptEditPanel.editTabContainer.hidden = true;
+        }
+    }
+
+    /**
+     * @brief Builds the edit tab content
+     *
+     * @param {Element} tabContainer
+     */
+    static __internal__addEditModalContent(tabContainer)
+    {
         // Script name input
         const editNameContainer = document.createElement("div");
         editNameContainer.appendChild(document.createTextNode("Script name: "));
@@ -205,9 +276,6 @@ class AutomationScriptManager
             this.__internal__scriptEditPanel.saveButton.hidden = true;
             this.__internal__scriptEditPanel.discardButton.hidden = true;
         }.bind(this);
-
-        // Add the modal to the document
-        document.body.appendChild(this.__internal__scriptEditPanel.container);
     }
 
     /**
@@ -366,9 +434,16 @@ class AutomationScriptManager
             editButton.onclick = function()
                 {
                     this.__internal__scriptEditPanel.storageKey = script.storageKey;
-                    this.__internal__scriptEditPanel.tabTitle.textContent = "Edit script";
+                    const didErrorOccur = (script.errors !== undefined);
+                    this.__internal__scriptEditPanel.errorTabTitle.hidden = !didErrorOccur;
+                    this.__internal__switchToTab(didErrorOccur ? "error" : "edit");
+                    this.__internal__scriptEditPanel.editTabTitle.textContent = "Edit script";
                     this.__internal__scriptEditPanel.scriptTitle.textContent = script.name;
                     this.__internal__scriptEditPanel.scriptContent.textContent = script.content;
+                    if (didErrorOccur)
+                    {
+                        this.__internal__scriptEditPanel.errorContent.textContent = this.__internal__formatError(script.errors.stack);
+                    }
                     this.__internal__scriptEditPanel.saveButton.textContent = "Save changes";
                     this.__internal__scriptEditPanel.discardButton.textContent = "Discard changes";
                     this.__internal__scriptEditPanel.container.hidden = false;
@@ -503,7 +578,9 @@ class AutomationScriptManager
         button.onclick = function()
             {
                 this.__internal__scriptEditPanel.storageKey = undefined;
-                this.__internal__scriptEditPanel.tabTitle.textContent = "Add a new script";
+                this.__internal__scriptEditPanel.errorTabTitle.hidden = true;
+                this.__internal__switchToTab("edit");
+                this.__internal__scriptEditPanel.editTabTitle.textContent = "Create script";
                 this.__internal__scriptEditPanel.scriptTitle.textContent = "New script";
                 this.__internal__scriptEditPanel.scriptContent.textContent = "/* Input your javascript here */";
                 this.__internal__scriptEditPanel.saveButton.textContent = "Save script";
@@ -691,6 +768,19 @@ class AutomationScriptManager
     }
 
     /**
+     * @brief Formats a stack-trace for the user
+     *
+     * @param {string} stack: The full stack-trace
+     *
+     * @returns The formated stack-trace
+     */
+    static __internal__formatError(stack)
+    {
+        // Remove last 3 lines (the current project internal stack)
+        return stack.replace(/\r?\n?[^\r\n]*$/, "").replace(/\r?\n?[^\r\n]*$/, "").replace(/\r?\n?[^\r\n]*$/, "");
+    }
+
+    /**
      * @brief Sets the value associated to @p key to @p defaultValue from the local storage,
      *        if it was never set before.
      *
@@ -765,25 +855,51 @@ class AutomationScriptManager
                 background-color: #444444;
                 border: 1px solid #666666;
                 border-radius: 5px;
-                margin: 10px;
                 padding: 10px;
             }
             .pokeWithScript-edit-title
             {
                 top: 1px;
                 position: relative;
+                display: inline-block;
                 border-bottom-left-radius: 0px;
                 border-bottom-right-radius: 0px;
-                border-bottom: 0px;
+                border-bottom-color: #444444;
                 width: fit-content;
                 padding: 10px;
-                margin-bottom: 0px;
+                padding-bottom: 9px;
+            }
+            .pokeWithScript-edit-title.hidden
+            {
+                background-color: #303030;
+                border-bottom-color: #666666;
+                cursor: pointer;
             }
             .pokeWithScript-edit-tab
             {
+                margin: 10px;
                 height: calc(100% - 60px);
                 margin-top: 0px;
                 border-top-left-radius: 0px;
+            }
+
+            .pokeWithScript-script-errors
+            {
+                color: #000000;
+                background-color: #aaaaaa;
+                user-select: text !important;
+                border-bottom: solid 1px #e9e9e9;
+                border-radius: 5px;
+                padding-top: 5px;
+                padding-bottom: 3px;
+                padding-right: 8px;
+                padding-left: 8px;
+                display: grid; /* Let it take the the whole width */
+                max-height: calc(100% - 104px);
+                overflow: auto;
+                font-family: monospace;
+                line-height: 18px;
+                margin-top: 5px;
             }
 
             .pokeWithScript-edit-input,
@@ -798,7 +914,6 @@ class AutomationScriptManager
                 padding-bottom: 3px;
                 padding-right: 8px;
                 padding-left: 8px;
-                transition: color 1s;
             }
             .pokeWithScript-edit-input:focus,
             .pokeWithScript-edit-script-area:focus
