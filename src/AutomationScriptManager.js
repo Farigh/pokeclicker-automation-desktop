@@ -284,7 +284,7 @@ class AutomationScriptManager
     /**
      * @brief Adds a script toogle button with its label
      *
-     * @param script: The script date
+     * @param script: The script data
      * @param canEdit: True if the user can edit or delete this script, false otherwise
      */
     static __internal__addScriptElement(script, canEdit)
@@ -303,6 +303,20 @@ class AutomationScriptManager
 
         if (canEdit)
         {
+            // Add edit button
+            const editButton = this.__internal__createEditButton();
+            container.appendChild(editButton);
+
+            editButton.onclick = function()
+                {
+                    this.__internal__scriptEditPanel.storageKey = script.storageKey;
+                    this.__internal__scriptEditPanel.tabTitle.textContent = "Edit script";
+                    this.__internal__scriptEditPanel.scriptTitle.textContent = script.name;
+                    this.__internal__scriptEditPanel.scriptContent.textContent = script.content;
+                    this.__internal__scriptEditPanel.saveButton.textContent = "Save changes";
+                    this.__internal__scriptEditPanel.container.hidden = false;
+                }.bind(this);
+
             // Add the delete button
             const deleteButton = this.__internal__createDeleteButton();
             container.appendChild(deleteButton);
@@ -326,12 +340,12 @@ class AutomationScriptManager
             noButton.onclick = function()
                 {
                     deleteConfirmationContainer.classList.remove("visible");
+                    editButton.hidden = false;
                     deleteButton.hidden = false;
                 };
             yesButton.onclick = function()
                 {
                     deleteConfirmationContainer.classList.remove("visible");
-                    deleteButton.hidden = false;
 
                     // Remove the storage key
                     this.__internal__customScriptStorageKeys.delete(script.storageKey);
@@ -347,6 +361,7 @@ class AutomationScriptManager
             deleteButton.onclick = function()
                 {
                     deleteConfirmationContainer.classList.add("visible");
+                    editButton.hidden = true;
                     deleteButton.hidden = true;
                 };
         }
@@ -391,6 +406,30 @@ class AutomationScriptManager
     }
 
     /**
+     * @brief Creates an edit button
+     *
+     * @returns The created button
+     */
+    static __internal__createEditButton()
+    {
+        const editButtonContainer = document.createElement("div");
+        editButtonContainer.classList.add("pokeWithScript-edit-button-container");
+
+        const editButtonImage = document.createElement("div");
+        editButtonImage.classList.add("pokeWithScript-edit-button-image");
+        editButtonImage.textContent = "📝";
+        editButtonContainer.appendChild(editButtonImage);
+
+        const editButtonTooltip = document.createElement("div");
+        editButtonTooltip.classList.add("pokeWithScript-edit-button-tooltip");
+        editButtonContainer.appendChild(editButtonTooltip);
+
+        editButtonTooltip.textContent = "Edit";
+
+        return editButtonContainer;
+    }
+
+    /**
      * @brief Creates the button to add new scripts
      *
      * @returns The created button
@@ -406,10 +445,11 @@ class AutomationScriptManager
 
         button.onclick = function()
             {
+                this.__internal__scriptEditPanel.storageKey = undefined;
                 this.__internal__scriptEditPanel.tabTitle.textContent = "Add a new script";
                 this.__internal__scriptEditPanel.scriptTitle.textContent = "New script";
                 this.__internal__scriptEditPanel.scriptContent.textContent = "/* Input your javascript here */";
-                this.__internal__scriptEditPanel.saveButton.textContent = "Save script"
+                this.__internal__scriptEditPanel.saveButton.textContent = "Save script";
                 this.__internal__scriptEditPanel.container.hidden = false;
             }.bind(this);
 
@@ -461,12 +501,25 @@ class AutomationScriptManager
     {
         const scriptName = this.__internal__scriptEditPanel.scriptTitle.textContent;
         const scriptLines = this.__internal__getMultiLineTextContent(this.__internal__scriptEditPanel.scriptContent.childNodes);
-        const storageKey= this.__internal__generateScriptStorageKey();
 
-        // Enable the script by default
-        this.__internal__setDefaultLocalStorageValue(storageKey, true);
+        // New script
+        if (this.__internal__scriptEditPanel.storageKey === undefined)
+        {
+            const storageKey = this.__internal__generateScriptStorageKey();
 
-        this.__internal__customScriptList.push({ name: scriptName, content: scriptLines, storageKey });
+            // Enable the script by default
+            this.__internal__setDefaultLocalStorageValue(storageKey, true);
+
+            this.__internal__customScriptList.push({ name: scriptName, content: scriptLines, storageKey });
+        }
+        // Script edit
+        else
+        {
+            // Update the script data
+            const existingScript = this.__internal__customScriptList.findLast(s => s.storageKey === this.__internal__scriptEditPanel.storageKey);
+            existingScript.name = scriptName;
+            existingScript.content = scriptLines;
+        }
 
         // Save to the changes to the local storage
         this.__internal__saveScriptData();
@@ -954,6 +1007,48 @@ class AutomationScriptManager
             .pokeWithScript-trash-container:hover .pokeWithScript-trash-tooltip
             {
                 bottom: -22px;
+                opacity: 1;
+            }
+
+            /*********************\
+            |*    Edit button    *|
+            \*********************/
+
+            .pokeWithScript-edit-button-container
+            {
+                position: relative;
+                cursor: pointer;
+                display: inline-block;
+                top: 4px;
+                margin-left: 4px;
+            }
+            .pokeWithScript-edit-button-image
+            {
+                position: relative;
+                bottom: 3px;
+                width: 22px;
+                height: 20px;
+                font-size: 18px;
+            }
+            .pokeWithScript-edit-button-tooltip
+            {
+                position: absolute;
+                background: #777777;
+                color: white;
+                font-size: 10px;
+                line-height: 15px;
+                padding: 2px 4px;
+                border-radius: 2px;
+                bottom: 0px;
+                opacity: 0;
+                z-index: 99999;
+                pointer-events: none;
+
+                transition: all .4s ease .4s;
+            }
+            .pokeWithScript-edit-button-container:hover .pokeWithScript-edit-button-tooltip
+            {
+                bottom: -20px;
                 opacity: 1;
             }
 
