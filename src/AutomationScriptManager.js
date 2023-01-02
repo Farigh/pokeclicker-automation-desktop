@@ -150,6 +150,62 @@ class AutomationScriptManager
         tabContainer.appendChild(this.__internal__scriptEditPanel.saveButton);
         this.__internal__scriptEditPanel.saveButton.onclick = this.__internal__saveScriptChanges.bind(this);
 
+        // Discard button
+        this.__internal__scriptEditPanel.discardButton = document.createElement("div");
+        this.__internal__scriptEditPanel.discardButton.classList.add("pokeWithScript-edit-discard-button");
+        this.__internal__scriptEditPanel.discardButton.style.marginLeft = "10px";
+        tabContainer.appendChild(this.__internal__scriptEditPanel.discardButton);
+
+        // Add the discard confirmation prompt
+        const discardConfirmationContainer = document.createElement("span");
+        discardConfirmationContainer.classList.add("pokeWithScript-confirmation-container");
+        discardConfirmationContainer.style.marginLeft = "0px";
+        discardConfirmationContainer.style.marginTop = "5px";
+        discardConfirmationContainer.style.padding = "2.5px 10px";
+        tabContainer.appendChild(discardConfirmationContainer);
+
+        discardConfirmationContainer.appendChild(document.createTextNode("Are you sure ? All modification will be lost !"));
+
+        const noButton = document.createElement("div");
+        noButton.classList.add("pokeWithScript-no-button");
+        noButton.style.padding = "2.5px 10px";
+        noButton.textContent = "No";
+        discardConfirmationContainer.appendChild(noButton);
+
+        const yesButton = document.createElement("div");
+        yesButton.classList.add("pokeWithScript-yes-button");
+        yesButton.style.padding = "2.5px 10px";
+        yesButton.textContent = "Yes";
+        discardConfirmationContainer.appendChild(yesButton);
+
+        noButton.onclick = function()
+            {
+                // Restore the button status
+                discardConfirmationContainer.classList.remove("visible");
+                this.__internal__scriptEditPanel.saveButton.hidden = false;
+                this.__internal__scriptEditPanel.discardButton.hidden = false;
+            }.bind(this);
+        yesButton.onclick = function()
+            {
+                // Hide the edit modal
+                this.__internal__scriptEditPanel.container.hidden = true;
+
+                // Restore the button status
+                discardConfirmationContainer.classList.remove("visible");
+                this.__internal__scriptEditPanel.saveButton.hidden = false;
+                this.__internal__scriptEditPanel.discardButton.hidden = false;
+            }.bind(this);
+
+        this.__internal__scriptEditPanel.discardButton.onclick = function()
+        {
+            // Show the confimation prompt
+            discardConfirmationContainer.classList.add("visible");
+
+            // Hide the save and discard buttons
+            this.__internal__scriptEditPanel.saveButton.hidden = true;
+            this.__internal__scriptEditPanel.discardButton.hidden = true;
+        }.bind(this);
+
         // Add the modal to the document
         document.body.appendChild(this.__internal__scriptEditPanel.container);
     }
@@ -314,6 +370,7 @@ class AutomationScriptManager
                     this.__internal__scriptEditPanel.scriptTitle.textContent = script.name;
                     this.__internal__scriptEditPanel.scriptContent.textContent = script.content;
                     this.__internal__scriptEditPanel.saveButton.textContent = "Save changes";
+                    this.__internal__scriptEditPanel.discardButton.textContent = "Discard changes";
                     this.__internal__scriptEditPanel.container.hidden = false;
                 }.bind(this);
 
@@ -450,6 +507,7 @@ class AutomationScriptManager
                 this.__internal__scriptEditPanel.scriptTitle.textContent = "New script";
                 this.__internal__scriptEditPanel.scriptContent.textContent = "/* Input your javascript here */";
                 this.__internal__scriptEditPanel.saveButton.textContent = "Save script";
+                this.__internal__scriptEditPanel.discardButton.textContent = "Delete script";
                 this.__internal__scriptEditPanel.container.hidden = false;
             }.bind(this);
 
@@ -764,6 +822,7 @@ class AutomationScriptManager
                 margin-top: 5px;
             }
             .pokeWithScript-edit-save-button,
+            .pokeWithScript-edit-discard-button,
             .pokeWithScript-reload-button,
             .pokeWithScript-yes-button,
             .pokeWithScript-no-button
@@ -778,17 +837,19 @@ class AutomationScriptManager
                 padding: 0px 3px;
             }
             .pokeWithScript-edit-save-button,
+            .pokeWithScript-edit-discard-button,
             .pokeWithScript-reload-button
             {
                 margin-top: 5px;
-                border-radius: 5px;
                 padding: 5px 10px;
             }
+            .pokeWithScript-edit-discard-button,
             .pokeWithScript-no-button
             {
                 color: #FFFFFF;
                 background-color: #D90000;
             }
+            .pokeWithScript-edit-discard-button:hover,
             .pokeWithScript-no-button:hover
             {
                 cursor: pointer;
