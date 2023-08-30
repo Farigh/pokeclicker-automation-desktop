@@ -15,7 +15,7 @@ jobs:
             - name: Use Node.js
               uses: actions/setup-node@v3
               with:
-                node-version: 19
+                node-version: 20
 
             - name: Install Node.js dependencies
               run: npm ci
@@ -27,7 +27,7 @@ jobs:
 
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v3.1.0
+              uses: actions/upload-artifact@v3.1.2
               with:
                 name: windows-artifacts
                 path: |
@@ -41,7 +41,7 @@ jobs:
             - name: Use Node.js
               uses: actions/setup-node@v3
               with:
-                node-version: 19
+                node-version: 20
 
             - name: Install Node.js dependencies
               run: npm ci
