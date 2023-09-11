@@ -373,7 +373,7 @@ class AutomationScriptManager
 
             try
             {
-                eval(script.content);
+                Function(script.content)();
             }
             catch(error)
             {
