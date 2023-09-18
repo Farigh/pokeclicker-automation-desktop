@@ -20,6 +20,9 @@ jobs:
             - name: Update lock file
               run: npm install
 
+            - name: Run audit fix
+              run: npm audit fix
+
             - name: Upload artifacts
               uses: actions/upload-artifact@v3.1.2
               with:
