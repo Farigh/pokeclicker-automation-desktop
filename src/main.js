@@ -75,7 +75,7 @@ class PokeclickerAutomationUpdater
                             else
                             {
                                 // No update needed, run the automation right away
-                                this.runAutomation();
+                                this.runAutomation(mainWindow);
                             }
                         }
                         catch(e)
@@ -91,26 +91,26 @@ class PokeclickerAutomationUpdater
                     console.info("Running the local version of the automation.");
 
                     // No update needed, run the automation right away
-                    this.runAutomation();
+                    this.runAutomation(mainWindow);
                 }
             });
     }
 
-    static runAutomation()
+    static runAutomation(windowInstance)
     {
         // Load automation ComponentLoader
-        mainWindow.webContents.executeJavaScript(
+        windowInstance.webContents.executeJavaScript(
             fs.readFileSync(`${PokeclickerAutomationUpdater.automationFullPath}src/ComponentLoader.js`).toString()
         ).catch(e=>{});
 
         // Load automation ScriptManager
-        mainWindow.webContents.executeJavaScript(
+        windowInstance.webContents.executeJavaScript(
           fs.readFileSync(`${__dirname}/AutomationScriptManager.js`).toString()
         ).catch(e=>{});
 
         // Run automation
         const automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
-        mainWindow.webContents.executeJavaScript(
+        windowInstance.webContents.executeJavaScript(
             `AutomationScriptManager.run('${automationBaseUrl}');`);
     }
 
@@ -139,7 +139,7 @@ class PokeclickerAutomationUpdater
                         }
 
                         // Run the automation as soon at it's been updated
-                        this.runAutomation();
+                        this.runAutomation(mainWindow);
                     });
             });
     }
@@ -223,6 +223,11 @@ function createSecondaryWindow() {
 
   newWindow.setMenuBarVisibility(false);
   newWindow.setTitle('PokéClicker with Scripts (alternate)');
+
+  newWindow.webContents.on('did-finish-load', () => {
+    // Run the automation
+    PokeclickerAutomationUpdater.runAutomation(newWindow);
+  });
 
   // Check if we've already downloaded the data, otherwise load our loading screen
   if (fs.existsSync(`${dataDir}/pokeclicker-master/docs/index.html`)) {
