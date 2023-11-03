@@ -1,8 +1,9 @@
 class AutomationScriptManager
 {
-    static run(automationBaseUrl)
+    static run(automationBaseUrl, areScriptEnabled)
     {
         this.__internal__automationBaseUrl = automationBaseUrl;
+        this.__internal__areScriptEnabled = areScriptEnabled;
 
         // Set the automation script settings default values
         this.__internal__setDefaultLocalStorageValue(this.__internal__defaultScriptEnabledKey, true);
@@ -365,6 +366,12 @@ class AutomationScriptManager
         let customScriptsErrorCount = 0;
         for (const script of this.__internal__customScriptList)
         {
+            if (!this.__internal__areScriptEnabled)
+            {
+                // Don't execute any script in this case
+                break;
+            }
+
             if (localStorage.getItem(script.storageKey) != "true")
             {
                 // Don't run disabled scripts
@@ -613,6 +620,15 @@ class AutomationScriptManager
         // Set the current state
         const isFeatureEnabled = (localStorage.getItem(id) === "true");
         buttonElem.setAttribute("checked", isFeatureEnabled ? "true" : "false");
+
+        // Disable custom scripts button if script execution is disabled
+        if (!this.__internal__areScriptEnabled
+            && (id != this.__internal__defaultScriptEnabledKey)
+            && (id != this.__internal__defaultScriptDisableFeatureKey)
+            && (id != this.__internal__defaultScriptDisableSettingsKey))
+        {
+            buttonElem.setAttribute("disabled", "true");
+        }
 
         // Register the onclick event callback
         buttonElem.onclick = function()
