@@ -15,3 +15,10 @@ A web wrapper for Pokeclicker with scripts support
 ## Features from the `With Scripts support` version:
 - Runs the [pokeclicker-automation](https://github.com/Farigh/pokeclicker-automation), which can be disabled
 - Allows to add more scripts to run (with toggles to enable/disable them individually)
+- CLI support
+```text
+Available arguments:
+  --help              Displays the help message
+  --disable-scripts   Disables the custom scripts execution
+                      This can be usefull if the scripts messes everything up
+```

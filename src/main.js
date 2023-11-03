@@ -16,6 +16,27 @@ const clientVersion = app.getVersion();
 const dataDir =  (electron.app || electron.remote.app).getPath('userData');
 
 /***********************************\
+ *             Getopt              *|
+\***********************************/
+
+if (app.commandLine.hasSwitch('help'))
+{
+    console.info("Available options:");
+    console.info("  --help              Displays this help message");
+    console.info("  --disable-scripts   Disables the custom scripts execution");
+    console.info("                      This can be usefull if the scripts messes everything up");
+
+    return;
+}
+
+const areScriptEnabled = !app.commandLine.hasSwitch('disable-scripts');
+
+if (!areScriptEnabled)
+{
+    console.info("Disabling script execution");
+}
+
+/***********************************\
  *   PokeclickerAutomation stuff   *|
 \***********************************/
 
@@ -40,7 +61,7 @@ class PokeclickerAutomationUpdater
         return currentVersionSha1;
     }
 
-    static checkForUpdatesAndRun(userAgent)
+    static checkForUpdatesAndRun(userAgent, areScriptEnabled)
     {
         // Create the output dir if it does not exist
         if (!fs.existsSync(this.automationFullPath))
@@ -75,7 +96,7 @@ class PokeclickerAutomationUpdater
                             else
                             {
                                 // No update needed, run the automation right away
-                                this.runAutomation(mainWindow);
+                                this.runAutomation(mainWindow, areScriptEnabled);
                             }
                         }
                         catch(e)
@@ -91,12 +112,12 @@ class PokeclickerAutomationUpdater
                     console.info("Running the local version of the automation.");
 
                     // No update needed, run the automation right away
-                    this.runAutomation(mainWindow);
+                    this.runAutomation(mainWindow, areScriptEnabled);
                 }
             });
     }
 
-    static runAutomation(windowInstance)
+    static runAutomation(windowInstance, areScriptEnabled)
     {
         // Load automation ComponentLoader
         windowInstance.webContents.executeJavaScript(
@@ -111,7 +132,7 @@ class PokeclickerAutomationUpdater
         // Run automation
         const automationBaseUrl = url.pathToFileURL(PokeclickerAutomationUpdater.automationFullPath);
         windowInstance.webContents.executeJavaScript(
-            `AutomationScriptManager.run('${automationBaseUrl}');`);
+            `AutomationScriptManager.run('${automationBaseUrl}', ${areScriptEnabled});`);
     }
 
     static downloadNewUpdate(newVersionSha1)
@@ -139,7 +160,7 @@ class PokeclickerAutomationUpdater
                         }
 
                         // Run the automation as soon at it's been updated
-                        this.runAutomation(mainWindow);
+                        this.runAutomation(mainWindow, areScriptEnabled);
                     });
             });
     }
@@ -186,11 +207,18 @@ function createWindow() {
     ).catch(e=>{});
 
     // Update automation if needed
-    PokeclickerAutomationUpdater.checkForUpdatesAndRun(mainWindow.webContents.session.getUserAgent());
+    PokeclickerAutomationUpdater.checkForUpdatesAndRun(mainWindow.webContents.session.getUserAgent(), areScriptEnabled);
   });
 
+  let windowTitle = "PokéClicker with Scripts";
+
+  if (!areScriptEnabled)
+  {
+      windowTitle += " (Custom script execution disabled)";
+  }
+
   mainWindow.setMenuBarVisibility(false);
-  mainWindow.setTitle('PokéClicker with Scripts');
+  mainWindow.setTitle(windowTitle);
 
   // Check if we've already downloaded the data, otherwise load our loading screen
   if (fs.existsSync(`${dataDir}/pokeclicker-master/docs/index.html`)) {
@@ -226,7 +254,7 @@ function createSecondaryWindow() {
 
   newWindow.webContents.on('did-finish-load', () => {
     // Run the automation
-    PokeclickerAutomationUpdater.runAutomation(newWindow);
+    PokeclickerAutomationUpdater.runAutomation(newWindow, areScriptEnabled);
   });
 
   // Check if we've already downloaded the data, otherwise load our loading screen
