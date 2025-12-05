@@ -1,6 +1,6 @@
 {
   "name": "pokeclicker-desktop-with-scripts",
-  "version": "1.2.11",
+  "version": "1.2.12",
   "description": "PokeClicker with Scripts Desktop",
   "repository": {
     "type": "git",
@@ -28,7 +28,7 @@
     "electron-updater": "^6.6.2"
   },
   "devDependencies": {
-    "electron": "^38.0.0",
+    "electron": "^39.2.6",
     "electron-builder": "^26.0.12"
   },
   "build": {
