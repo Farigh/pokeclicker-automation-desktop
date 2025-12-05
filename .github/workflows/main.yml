@@ -12,9 +12,9 @@ jobs:
         runs-on: windows-latest
 
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
             - name: Use Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                 node-version: 22
 
@@ -28,7 +28,7 @@ jobs:
               run: npm run-script win-portable
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                 name: windows-artifacts
                 path: |
@@ -38,9 +38,9 @@ jobs:
         runs-on: ubuntu-latest
 
         steps:
-            - uses: actions/checkout@v5
+            - uses: actions/checkout@v6
             - name: Use Node.js
-              uses: actions/setup-node@v5
+              uses: actions/setup-node@v6
               with:
                 node-version: 22
 
@@ -51,7 +51,7 @@ jobs:
               run: npm run-script linux
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v4
+              uses: actions/upload-artifact@v5
               with:
                 name: linux-artifacts
                 path: |
