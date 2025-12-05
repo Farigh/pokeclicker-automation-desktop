@@ -15,7 +15,7 @@ jobs:
                 node-version: 24
 
             - name: Update lock file
-              run: npm install --package-lock-only
+              run: rm package-lock.json && npm install --package-lock-only
 
             - name: Run audit fix
               run: npm audit fix
