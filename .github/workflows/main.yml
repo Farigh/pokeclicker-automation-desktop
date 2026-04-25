@@ -28,7 +28,7 @@ jobs:
               run: npm run-script win-portable
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v5
+              uses: actions/upload-artifact@v7
               with:
                 name: windows-artifacts
                 path: |
@@ -51,7 +51,7 @@ jobs:
               run: npm run-script linux
 
             - name: Upload artifacts
-              uses: actions/upload-artifact@v5
+              uses: actions/upload-artifact@v7
               with:
                 name: linux-artifacts
                 path: |
